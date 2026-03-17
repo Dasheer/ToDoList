@@ -38,6 +38,15 @@ public class ToDoPanel extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         this.add(scrollPane, BorderLayout.CENTER);
 
+        JButton clearButton = new JButton("Clean Completed Tasks");
+        clearButton.setForeground(Color.DARK_GRAY);
+        clearButton.setFocusable(false);
+        clearButton.addActionListener(e -> {
+            manager.clearCompletedTasks();
+            updateList();
+        });
+        this.add(clearButton, BorderLayout.SOUTH);
+
         updateList();
     }
 
@@ -63,19 +72,14 @@ public class ToDoPanel extends JPanel {
             panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-            JCheckBox checkBox = new JCheckBox(task.getTitle(), task.isCompleted());
-            checkBox.setFont(new Font("Droid Sans Tamil", task.isCompleted() ? Font.ITALIC : Font.PLAIN, 16));
-            if (task.isCompleted()) {
-                checkBox.setForeground(Color.GRAY);
-            }
-
-            checkBox.addActionListener(e -> {
-                manager.toggleTaskCompletion(index);
-                updateList();
-            });
+            JCheckBox checkBox = getShowText(task, index);
 
             JButton deleteButton = new JButton("X");
             deleteButton.setForeground(Color.RED);
+            deleteButton.setFocusable(false);
+            deleteButton.setContentAreaFilled(false);
+            deleteButton.setBorderPainted(false);
+
             deleteButton.addActionListener(e -> {
                 manager.removeTask(index);
                 updateList();
@@ -88,5 +92,23 @@ public class ToDoPanel extends JPanel {
         }
         listContainer.revalidate();
         listContainer.repaint();
+    }
+
+    private JCheckBox getShowText(Task task, int index) {
+        String showText = task.getTitle();
+        if (task.isCompleted()) {
+            showText = "<html><s><font color='gray'>" + showText + "</font></s></html>";
+        } else {
+            showText = "<html><font color='black'>" + showText + "</font></html>";
+        }
+
+        JCheckBox checkBox = new JCheckBox(showText, task.isCompleted());
+        checkBox.setFont(new Font("Droid Sans Tamil", task.isCompleted() ? Font.ITALIC : Font.PLAIN, 16));
+
+        checkBox.addActionListener(e -> {
+            manager.toggleTaskCompletion(index);
+            updateList();
+        });
+        return checkBox;
     }
 }

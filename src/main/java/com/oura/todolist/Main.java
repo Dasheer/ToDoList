@@ -17,7 +17,7 @@ public class Main {
         } catch (Exception e) {
             System.err.println("Failed to set FlatLaf look and feel");
         }
-        
+
         List<Task> tasksSaves = FileManager.loadTasks();
 
         TaskManager manager = new TaskManager();

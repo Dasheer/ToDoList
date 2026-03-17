@@ -33,4 +33,8 @@ public class TaskManager {
             tasks.remove(index);
         }
     }
+
+    public void clearCompletedTasks() {
+        tasks.removeIf(Task::isCompleted);
+    }
 }
