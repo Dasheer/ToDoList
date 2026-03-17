@@ -1,0 +1,3 @@
+Learning Python       | true
+Learning Java       | false
+K | true
