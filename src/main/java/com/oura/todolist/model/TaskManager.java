@@ -4,16 +4,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TaskManager {
-    private final List<Task> tasks;
+    private List<Task> tasks;
 
     public TaskManager() {
         this.tasks = new ArrayList<>();
     }
 
-    public void addTask(String title) {
-        if (title != null && !title.trim().isEmpty()) {
-            Task newTask = new Task(title);
-            tasks.add(newTask);
+    public void addTask(Task task) {
+        if (task != null) {
+            tasks.add(task);
+        }
+    }
+
+    public void setTasks(List<Task> tasks) {
+        if (tasks != null) {
+            this.tasks = tasks;
         }
     }
 
@@ -36,5 +41,25 @@ public class TaskManager {
 
     public void clearCompletedTasks() {
         tasks.removeIf(Task::isCompleted);
+    }
+
+    public void moveTaskUp(int index) {
+        if (index > 0 && index < tasks.size()) {
+            Task task = tasks.remove(index);
+            tasks.add(index - 1, task);
+        }
+    }
+
+    public void moveTaskDown(int index) {
+        if (index >= 0 && index < tasks.size() - 1) {
+            Task task = tasks.remove(index);
+            tasks.add(index + 1, task);
+        }
+    }
+
+    public void editTaskTitle(int index, String newTitle) {
+        if (index >= 0 && index < tasks.size() && newTitle != null && !newTitle.trim().isEmpty()) {
+            tasks.get(index).setTitle(newTitle);
+        }
     }
 }

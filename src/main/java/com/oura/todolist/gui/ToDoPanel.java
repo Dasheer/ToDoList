@@ -5,33 +5,63 @@ import com.oura.todolist.model.TaskManager;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class ToDoPanel extends JPanel {
-    private TaskManager manager;
-    private JTextField inputField;
-    private JPanel listContainer;
+    private final TaskManager manager;
+    private final JTextField inputField;
+    private final JPanel listContainer;
+    private final JComboBox<String> filterComboBox;
+
+    private enum Filter {
+        ALL, PENDING, COMPLETED
+    }
+
+    private Filter currentFilter = Filter.ALL;
 
     public ToDoPanel(TaskManager taskManager) {
         this.manager = taskManager;
         this.setLayout(new BorderLayout(10, 10));
         this.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JPanel topPanel = new JPanel(new BorderLayout(5, 0));
+        JPanel topPanel = new JPanel(new BorderLayout(5, 5));
+
+        JPanel inputPanel = new JPanel(new BorderLayout(5, 0));
         inputField = new JTextField();
         inputField.setFont(new Font("Droid Sans Tamil", Font.PLAIN, 16));
 
         JButton addButton = new JButton("Add");
-        addButton.addActionListener(e -> addNewTask());
+        addButton.addActionListener(_ -> addNewTask());
 
-        inputField.addActionListener(e -> addNewTask());
+        inputField.addActionListener(_ -> addNewTask());
 
-        topPanel.add(inputField, BorderLayout.CENTER);
-        topPanel.add(addButton, BorderLayout.EAST);
+        inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(addButton, BorderLayout.EAST);
+
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        filterComboBox = new JComboBox<>(new String[]{"All", "Pending", "Completed"});
+        filterComboBox.addActionListener(_ -> {
+            int selectedIndex = filterComboBox.getSelectedIndex();
+            if (selectedIndex == 0) {
+                currentFilter = Filter.ALL;
+            } else if (selectedIndex == 1) {
+                currentFilter = Filter.PENDING;
+            } else {
+                currentFilter = Filter.COMPLETED;
+            }
+            updateList();
+        });
+        filterPanel.add(new JLabel("Filter: "));
+        filterPanel.add(filterComboBox);
+
+        topPanel.add(filterPanel, BorderLayout.NORTH);
+        topPanel.add(inputPanel, BorderLayout.SOUTH);
+
         this.add(topPanel, BorderLayout.NORTH);
 
         listContainer = new JPanel();
-
         listContainer.setLayout(new BoxLayout(listContainer, BoxLayout.Y_AXIS));
 
         JScrollPane scrollPane = new JScrollPane(listContainer);
@@ -41,7 +71,7 @@ public class ToDoPanel extends JPanel {
         JButton clearButton = new JButton("Clean Completed Tasks");
         clearButton.setForeground(Color.DARK_GRAY);
         clearButton.setFocusable(false);
-        clearButton.addActionListener(e -> {
+        clearButton.addActionListener(_ -> {
             manager.clearCompletedTasks();
             updateList();
         });
@@ -53,7 +83,7 @@ public class ToDoPanel extends JPanel {
     private void addNewTask() {
         String text = inputField.getText();
         if (!text.trim().isEmpty()) {
-            manager.addTask(text);
+            manager.addTask(new Task(text));
             inputField.setText("");
             updateList();
         }
@@ -61,12 +91,15 @@ public class ToDoPanel extends JPanel {
 
     private void updateList() {
         listContainer.removeAll();
-        List<Task> tasks = manager.getTasks();
+        List<Task> allTasks = manager.getTasks();
 
-        for (int i = 0; i < tasks.size(); i++) {
+        for (int i = 0; i < allTasks.size(); i++) {
             final int index = i;
 
-            Task task = tasks.get(i);
+            Task task = allTasks.get(i);
+
+            if (currentFilter == Filter.PENDING && task.isCompleted()) continue;
+            if (currentFilter == Filter.COMPLETED && !task.isCompleted()) continue;
 
             JPanel panel = new JPanel(new BorderLayout());
             panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -74,24 +107,68 @@ public class ToDoPanel extends JPanel {
 
             JCheckBox checkBox = getShowText(task, index);
 
-            JButton deleteButton = new JButton("X");
-            deleteButton.setForeground(Color.RED);
-            deleteButton.setFocusable(false);
-            deleteButton.setContentAreaFilled(false);
-            deleteButton.setBorderPainted(false);
+            JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
 
-            deleteButton.addActionListener(e -> {
+            JButton editButton = getEditButton(task, index);
+
+            JButton upButton = new JButton("↑");
+            upButton.setToolTipText("Move Up");
+            upButton.setMargin(new Insets(2, 5, 2, 5));
+            upButton.setFocusable(false);
+            upButton.addActionListener(_ -> {
+                manager.moveTaskUp(index);
+                updateList();
+            });
+            if (currentFilter != Filter.ALL || index == 0) upButton.setEnabled(false);
+
+            JButton downButton = new JButton("↓");
+            downButton.setToolTipText("Move Down");
+            downButton.setMargin(new Insets(2, 5, 2, 5));
+            downButton.setFocusable(false);
+            downButton.addActionListener(_ -> {
+                manager.moveTaskDown(index);
+                updateList();
+            });
+
+            if (currentFilter != Filter.ALL || index == allTasks.size() - 1) downButton.setEnabled(false);
+
+            JButton deleteButton = new JButton("✖");
+            deleteButton.setForeground(Color.RED);
+            deleteButton.setToolTipText("Delete");
+            deleteButton.setFocusable(false);
+            deleteButton.setMargin(new Insets(2, 5, 2, 5));
+            deleteButton.addActionListener(_ -> {
                 manager.removeTask(index);
                 updateList();
             });
 
+            buttonsPanel.add(editButton);
+            buttonsPanel.add(upButton);
+            buttonsPanel.add(downButton);
+            buttonsPanel.add(deleteButton);
+
             panel.add(checkBox, BorderLayout.CENTER);
-            panel.add(deleteButton, BorderLayout.EAST);
+            panel.add(buttonsPanel, BorderLayout.EAST);
 
             listContainer.add(panel);
         }
         listContainer.revalidate();
         listContainer.repaint();
+    }
+
+    private JButton getEditButton(Task task, int index) {
+        JButton editButton = new JButton("✎");
+        editButton.setToolTipText("Edit");
+        editButton.setMargin(new Insets(2, 5, 2, 5));
+        editButton.setFocusable(false);
+        editButton.addActionListener(_ -> {
+            String newTitle = JOptionPane.showInputDialog(this, "Edit task: ", task.getTitle());
+            if (newTitle != null && !newTitle.trim().isEmpty()) {
+                manager.editTaskTitle(index, newTitle);
+                updateList();
+            }
+        });
+        return editButton;
     }
 
     private JCheckBox getShowText(Task task, int index) {
@@ -105,7 +182,20 @@ public class ToDoPanel extends JPanel {
         JCheckBox checkBox = new JCheckBox(showText, task.isCompleted());
         checkBox.setFont(new Font("Droid Sans Tamil", task.isCompleted() ? Font.ITALIC : Font.PLAIN, 16));
 
-        checkBox.addActionListener(e -> {
+        checkBox.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    String newTitle = JOptionPane.showInputDialog(ToDoPanel.this, "Edit task: ", task.getTitle());
+                    if (newTitle != null && !newTitle.trim().isEmpty()) {
+                        manager.editTaskTitle(index, newTitle);
+                        updateList();
+                    }
+                }
+            }
+        });
+
+        checkBox.addActionListener(_ -> {
             manager.toggleTaskCompletion(index);
             updateList();
         });

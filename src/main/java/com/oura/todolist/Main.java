@@ -10,25 +10,18 @@ import javax.swing.*;
 import java.util.List;
 
 public class Main {
-    static void main() {
-
-        try {
-            UIManager.setLookAndFeel(new FlatLightLaf());
-        } catch (Exception e) {
-            System.err.println("Failed to set FlatLaf look and feel");
-        }
-
-        List<Task> tasksSaves = FileManager.loadTasks();
-
-        TaskManager manager = new TaskManager();
-        for (Task t : tasksSaves) {
-            manager.addTask(t.getTitle());
-            if (t.isCompleted()) {
-                manager.toggleTaskCompletion(manager.getTasks().size() - 1);
-            }
-        }
-
+    public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(new FlatLightLaf());
+            } catch (Exception e) {
+                System.err.println("Failed to set FlatLaf look and feel");
+            }
+
+            List<Task> savedTasks = FileManager.loadTasks();
+            TaskManager manager = new TaskManager();
+            manager.setTasks(savedTasks);
+
             new ToDoWindow(manager);
         });
     }
